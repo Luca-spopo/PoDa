@@ -1,0 +1,421 @@
+package map;
+
+import flash.display.Sprite;
+import map.Map;
+import map.Container;
+import map.TileTemplate;
+import common.Gif;
+import openfl.Assets;
+import map.TileSprite;
+import common.Ticker;
+import map.Entity;
+
+//For now, shiftlocalmap uses pop/shift, but in the future it needs to be overhauled to use looping markers which would be more efficent
+
+class Mapper extends Sprite
+{
+	inline static private var tileW:Float=90;
+	private inline static var tileH:Float=45;
+	private var container:Container;
+	public var los(default, null):Int;
+	public var xlen(default, null):Int; //Size of the display
+	public var ylen(default, null):Int;
+	private var map:Map;
+	private var camX:Float;
+	private var camY:Float;
+	private var localmap:Array<Array<TileSprite>>;
+	private var bgmap:Array<Array<Gif>>;
+	private var fgmap:Array<Array<Gif>>;
+	private var entitygfx:Array<Gif>; //Is this the master list where entities get their display data from?
+	private var magx:Float; //magnification
+	private var magy:Float;
+	private var tim:Ticker;
+	private var xmarker:Int;
+	private var ymarker:Int; //These are used internally to efficiently shiftmap
+	public function new (yl:Int)
+	{
+		
+		super ();
+		
+		var xl=yl*2;
+		xlen = xl;
+		ylen = yl;
+		if(xlen<=0 || ylen<=0)
+		{
+			xlen=800;
+			ylen=400;
+			trace("bad args @ Mapper.new");
+		}
+		container = new Container();
+		addChild(container);
+		xmarker = ymarker = 0;
+		localmap = new Array<Array<TileSprite>>();
+		bgmap = new Array<Array<Gif>>();
+		fgmap = new Array<Array<Gif>>();
+		entitygfx = new Array<Gif>();
+		for(i in 0...33)		//for in haxe runs one less apparantly, so from 0 to 32 here
+		{
+			localmap[i] = new Array<TileSprite>();
+			bgmap[i] = new Array<Gif>();
+			fgmap[i] = new Array<Gif>();
+			for(j in 0...33)
+			{
+				localmap[i][j] = new TileSprite(i, j);
+			}
+		}
+		tim = new Ticker();
+		ticker.addTimer(timHandler, 1);
+	}
+	
+	private function timHandler()
+	{
+		var bla=-1;
+		for(i in -los+2...1)
+		{
+			bla++;
+			for(j in -bla...bla+1)
+			{
+				if(bgmap[i+16]!=null && bgmap[i+16][j+16]!=null)
+				bgmap[16+i][16+j].timhandler();
+			}
+		}
+		for(i in 1...los+3) //should be 2*los+camwidth. localmap should have an even number if main char takes 4 blocks
+		{
+			bla--;
+			for(j in -bla...bla+1)
+			{
+				if(bgmap[i+16]!=null && bgmap[i+16][j+16]!=null)
+				bgmap[16+i][16+j].timhandler();
+			}
+		}
+	}
+	public function loadMap(m:Map, e:Int)
+	{
+		if(m!=null)
+			map = m;
+		else
+			trace("Bad map @ Mapper.loadmap");
+			
+		if(m.entry!=null && m.entry[e]!=null)
+		{
+			camx = m.entry[e].x;
+			camy = m.entry[e].y;
+		}
+		else
+			trace("Bad map @ Mapper.loadmap (invalid entry point)");
+		camX = 0.5;
+		camY = 0.5;
+		
+		if(m.tiles!=null && m.tiles[camx]!=null && m.tiles[camx][camy]!=null && m.tiles[camx][camy].los!=-1)
+			los = m.tiles[camx][camy].los;
+		else
+			los = m.deflos; 
+		//renderLocalMap();
+		if(m.autofun!=null && m.autofun[e]!=null)
+			m.autofun[e]();
+		else
+			trace("Invalid entry function @ Mapper.loadmap");
+		createLocalMap();
+		tim.addTimer( timHandler , 1);
+		tim.resume();
+		moveCam(0, 0);
+	}
+	
+	private function loopint(n:Int, l:Int=0, u:Int=32)
+	{
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	public function shiftLocalMap(direction:Int) //1=x+, 2=y+, 3=x-, 4=y-
+	{
+		switch(direction)
+		{
+			case 1	:	camx++;
+			case 2	:	camy++;
+			case 3	:	camx--;
+			case 4	:	camy--;
+		}
+
+		var m=map;
+		if(m.tiles!=null && m.tiles[camx]!=null && m.tiles[camx][camy]!=null && m.tiles[camx][camy].los!=-1)
+			los = m.tiles[camx][camy].los;
+		else
+			los = m.deflos; 
+		
+		if(m.tiles!=null&&m.tiles[camx]!=null&&m.tiles[camx][camy]!=null&&m.tilefun[m.tiles[camx][camy].trigger-1]!=null)	
+			m.tilefun[m.tiles[camx][camy].trigger-1].doo();
+		
+
+		var grr:Array<Tile>;
+		switch(direction)
+		{
+			case 1	:	grr = localmap.shift();
+					localmap[32] = grr;
+					bgmap[32] = bgmap.shift();
+			case 2	:	for(k in 0...33){ localmap[k].shift(); bgmap[k].shift();};
+			case 3	:	grr = localmap.pop();
+					localmap.insert(0, grr);
+					bgmap.insert(0, bgmap.pop());
+			case 4	:	for(k in 0...33){ localmap[k].pop(); localmap[k].insert(0, null);bgmap[k].pop(); bgmap[k].insert(0, null);};
+		}
+
+		var i=0, j=0;
+		for(k in 0...33)
+		{
+			switch(direction)
+			{
+				case 1	:	i=0; j=k;
+				case 2	:	i=k; j=32;
+				case 3	:	i=32; j=k;
+				case 4	:	i=k; j=0;
+			}
+
+		//	if(localmap[i]!=null)
+		//	{
+
+			if(map.tiles[camx+i-16]!=null && map.tiles[camx+i-16][camy+j-16]!=null)					localmap[i][j] = map.tiles[camx+i-16][camy+j-16];
+			else
+				localmap[i][j] = null;
+		//	}
+		//	else
+		//		trace("WTF");
+		}
+
+		render();
+		
+	}
+	
+	private function asciirender()
+	{
+		for(i in 0...33)
+		{
+			var str = "";
+			for(j in 0...33)
+				if(localmap[i]!=null && localmap[i][j]!=null) str+=localmap[i][j].template else str+="N";
+			trace(str);
+		}		
+	}
+	
+	
+	private function render()
+	{
+	//NOTE FOR FUTURE: LOS depends on the entity in question too. When riding a horse or something, LOS automatically goes +2 or something. It is still capped at 15 though.
+	//Also note: add support for a 2block wide square camera (For example, when you are riding a cart, your entity might be 4 blocks not 1
+	
+		magx=xlen/(tileW*(los+0.5));
+		magy=ylen/(tileH*(los+0.5));
+		container.scaleX =  magx;
+		container.scaleY = magy;
+	
+		var bla=-1;	
+		//for(i in -los+2...1)
+		for(i in -los-2...1)
+		{
+			bla++;
+			for(j in -bla...bla+1)
+			{
+				if(localmap!=null && localmap[16+i]!=null && localmap[16+i][16+j]!=null)
+					maketile(i, j, localmap[16+i][16+j]);
+				else
+					maketile(i, j);
+			}
+		}
+		for(i in 1...los+3) //should be 2*los+camwidth. localmap should have an even number if main char takes 4 blocks
+		{
+			bla--;
+			for(j in -bla...bla+1)
+			{
+				if(localmap!=null && localmap[16+i]!=null && localmap[16+i][16+j]!=null)
+					maketile(i, j, localmap[16+i][16+j]);
+				else
+					maketile(i, j);
+			}
+		}
+
+	}
+	
+	
+	private function maketile(nx:Int, ny:Int, nt:Tile=null)
+	{
+		if(-16<=nx && ny<=16 && -16<=ny && nx<=16)
+		{
+			var n;
+			if(nt==null) n=0 else n=nt.template;
+			if(bgmap[16+nx][16+ny]==null) //if(bgmap==null || bgmap[16+nx]==null || bgmap[16+nx][16+ny]==null)//but you're taking no counters against the first 2 nulls!
+			{
+				bgmap[16+nx][16+ny]=map.tileset[n].bg.clone();
+				container.addChild(bgmap[16+nx][16+ny]);
+			}
+			bgmap[16+nx][16+ny].x=nx*tileW/2 - ny*tileW/2- tileW/2;
+			bgmap[16+nx][16+ny].y=ny*tileH/2 + nx*tileH/2;//- tileH/2;
+				
+			////else
+			//	if(map.tileset[n].bg.same(bgmap[16+nx][16+ny]) && (nx==-los || nx==los || ny==los || ny==-los) ) //what? No! Fix this
+			//		bgmap[16+nx][16+ny].anim(0); //only if on the edge
+			//	else
+			////		bgmap[16+nx][16+ny].copy(map.tileset[n].bg);
+					
+		}
+	}
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	private function createLocalMap()
+	{
+		//max los=15
+		for(i in 0...33) //0 to 32 inclusive
+		{
+			for(j in 0...33)
+			{
+				if(map.tiles[camx+i-16]!=null && map.tiles[camx+i-16][camy+j-16]!=null)
+					localmap[i][j] = map.tiles[camx+i-16][camy+j-16];
+				else
+					localmap[i][j] = null;
+			}
+		}
+		render();
+	}
+	
+	public function moveCam(nx:Float, ny:Float)
+	{
+		camX+=nx;
+		camY+=ny;
+		if (0<=camX&&camX<1&&0<=camY&&camY<1)
+		{
+			container.x=magx*-camX*tileW/2 + magy*camY*tileW/2;
+			container.y=magy*-camY*tileH/2 - magx*camX*tileH/2;
+		}
+		else
+			if(camX>=1)
+			{
+				camX--;
+				shiftLocalMap(1);
+				moveCam(0, 0);	
+			}
+			else
+				if(camX<=0)
+				{
+					camX++;
+					shiftLocalMap(3);
+					moveCam(0, 0);	
+				}
+				else
+				if(camY>=1)
+				{
+					camY--;
+					shiftLocalMap(2);
+					moveCam(0, 0);
+				}
+				else
+					if(camY<=0)
+					{	
+						camY++;
+						shiftLocalMap(4);
+						moveCam(0, 0);	
+					}
+			trace("\t"+Math.floor((camx+camX)*10)/10 + "\t" + Math.floor((camy+camY)*10)/10);// + "\t" + Math.floor(container.x) + "\t" + Math.floor(container.y));
+		}
+		
+}
+
+
+
+
+
+
+/*
+
+	public function shiftLocalMap(direction:Int) //1=x+, 2=y+, 3=x-, 4=y-
+	{
+		switch(direction)
+		{
+			case 1	:	camx++;
+					xmarker++;
+			case 2	:	camy++;
+					ymarker++;
+			case 3	:	camx--;
+					xmarker--;
+			case 4	:	camy--;
+					ymarker--;
+		}
+		
+		xmarker = loopint(xmarker);
+		ymarker = loopint(ymarker);
+		
+		var m=map;
+		if(m.tiles!=null && m.tiles[camx]!=null && m.tiles[camx][camy]!=null && m.tiles[camx][camy].los!=-1)
+			los = m.tiles[camx][camy].los;
+		else
+			los = m.deflos; 
+		
+		if(m.tiles!=null&&m.tiles[camx]!=null&&m.tiles[camx][camy]!=null&&m.tilefun[m.tiles[camx][camy].trigger-1]!=null)	
+			m.tilefun[m.tiles[camx][camy].trigger-1].doo();
+		
+		
+		magx=xlen/(tileW*(los+0.5));
+		magy=ylen/(tileH*(los+0.5));
+		container.scaleX =  magx;
+		container.scaleY = magy;
+		
+		var bla=-1;	
+		//for(i in -los+2...1)
+		for(i in -los-2...1)
+		{
+			bla++;
+			for(j in -bla...bla+1)
+			{
+				if(bgmap[loopint(xmarker+16+i)]!=null && bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)]!=null)
+				{
+				bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)].x=i*tileW/2 - j*tileW/2- tileW/2;
+				bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)].y = j*tileH/2 + i*tileH/2;
+				}
+			}
+		}
+		for(i in 1...los+3) //should be 2*los+camwidth. localmap should have an even number if main char takes 4 blocks
+		{
+			bla--;
+			for(j in -bla...bla+1)
+			{
+			if(bgmap[loopint(xmarker+16+i)]!=null && bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)]!=null)
+				{
+				bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)].x=i*tileW/2 - j*tileW/2- tileW/2;
+				bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)].y = j*tileH/2 + i*tileH/2;
+				}
+			}
+		}
+		
+		
+		switch(direction)
+		{
+			case 1	:	bgmap[loopint(xmarker+16+i)][loopint(ymarker+16+j)]
+			case 2	:	
+			case 3	:	
+			case 4	:	
+		}
+		
+		if(map.tiles[camx+i-16]!=null && map.tiles[camx+i-16][camy+j-16]!=null)
+			localmap[i][j] = map.tiles[camx+i-16][camy+j-16];
+		else
+			localmap[i][j] = null;
+		
+		
+		//if(m.tiles!=null&&m.tiles[camx]!=null&&m.tiles[camx][camy]!=null)
+		
+	}
+*/

@@ -1,0 +1,14 @@
+//Interect with a tile or talk to a party member or something, doo a Trigger!
+
+package pod.map ;
+
+class Trigger
+{
+	public var touch:Bool;
+	public var doo:Void->Void;
+	public function new (d:Void->Void, t:Bool=false)
+	{	
+		touch = t;
+		doo = d;
+	}
+}

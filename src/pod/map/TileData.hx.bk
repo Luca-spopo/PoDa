@@ -1,0 +1,149 @@
+package map;
+
+
+import flash.display.BitmapData;
+//import haxe.Timer;
+
+public typedef Anims = Array<   {anim:Array<{frame:Int, time:Int}>,   next:Array<Int>}   >
+
+//TODO: This class needs a lot of validation rules in place.
+//Also, this class needs a lot of optimization. Every fucking frame of animation is creating a new Timer PER TILE. Imagine 32^2 Timers being created every 100 miliseconds. Better alternative would be to keep a single timer per tile along with counter. DAMN YOU GARBAGE COLLECTION.
+
+//Ticker class was implemented, I think. That solves the Timer problem. The ticker is in the parent Mapper, and there is just one Timer to control all the tiles (and map related stuff) forever.
+
+//purpose: Its like a bitmap, but it supports animation and some degree of programmable random animation. Lighter than a movie clip, made for the purpose of being used as animated eye candy
+
+class TileData
+{
+	public var images:Array<BitmapData>;
+	public var anims(default, null):Anims;
+//	private var tim:Timer;
+	public var counter:Int;
+	public var a:Int; //current animation number
+	public var frame:Int; //current frame number in that animation
+	private var targetframe:Int; //the NUMBER OF FRAMES that need to be shown for current animation
+	private var prev:Int;
+	public var freeze:Bool;
+	public var bitmapData(default, null):BitmapData;
+	public function new (nimages:Array<BitmapData>, nanims:Anims)
+	{
+		super ();
+		if(nimages==null || nimages[0]==null || nanims==null) trace("Bad args at TileData.new");
+		images = nimages;
+		anims = nanims;
+//		tim = new Timer(100);
+//		counter=-1;
+//		a=0;
+//		frame=0;
+//		freeze = false;
+//		targetframe = anims[a].anim.length-1;
+		anim(0);
+		bitmapData = images[anims[a].anim[frame].frame];
+		prev = anims[a].anim[frame].frame;
+	}
+	
+	public function timhandler()
+	{
+		if(counter>=0)
+			counter--;
+		if(counter==0)
+		{
+			if(frame<targetframe)
+			{
+				frame++;
+				counter = anims[a].anim[frame].time;
+			}
+			else
+				if (freeze==false)
+				{
+					//trace("check");
+					a = anims[a].next[Std.random(anims[a].next.length)];
+					//trace("check");
+					counter = anims[a].anim[0].time;
+					frame = 0;
+					//trace("check");
+					targetframe = anims[a].anim.length-1;
+				}
+			if(prev!=anims[a].anim[frame].frame)
+			{
+				//trace("check");
+				bitmapData = images[anims[a].anim[frame].frame];
+				prev = 	anims[a].anim[frame].frame;
+			}
+		}
+	}
+	
+	
+	public function anim(n:Int, f:Bool=false, fr:Int=0)
+	{
+		freeze = f;
+		a=n;
+		frame=fr;
+		counter=anims[a].anim[fr].time;
+		targetframe = anims[a].anim.length-1;
+	}
+	
+	public function clone()
+	{
+		var lts = new TileData(images, anims);
+		lts.copy(this);
+		return lts;
+	}
+	
+	public function copy(l:TileData)
+	{
+		anims = l.anims;
+		images = l.images;
+	//	if(tim!=null)
+	//		tim.stop();
+		counter = l.counter;
+		anim(l.a, l.freeze, l.frame);
+	}
+	
+	public function same(l:TileData)
+	{
+		if(l.images == images && l.anims==anims)
+			return true;
+		return false;
+	}
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+/*
+	public function anim(n:Int, i:Int=0, freeze:Bool=false)
+	{
+		
+	
+		if(n>=0 && n<=anims.length-1 && i>=0 && i<=anims[n].anim.length-1)
+		{
+			
+			bitmapData = images[anims[n].anim[i].frame];
+			if(i<anims[n].anim.length-1)
+			{
+				counter=0;
+				anim(n, i+1, freeze);
+				//tim = haxe.Timer.delay(function(){anim(n, i+1, freeze);}, anims[n].anim[i].time*100);
+			}
+			else
+				if(!freeze && anims[n].next!=null && anims[n].next.length>0 && counter==anims[n].anim[i].time)
+				{
+					counter=0;
+					anim(anims[n].next[Std.random(anims[n].next.length)], 0);
+					//tim = haxe.Timer.delay(function(){anim(anims[n].next[Std.random(anims[n].next.length)], 0);}, anims[n].anim[i].time*100);
+				}
+		}
+		else
+			trace("Bad arg @ TileData.anim");
+		counter++;
+	}
+	*/

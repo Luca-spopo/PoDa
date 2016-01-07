@@ -1,0 +1,25 @@
+package map;
+
+import map.Trigger;
+
+class Tile
+{
+	public var template:Int;
+	public var entity(default, null):Int;
+	public var entityx(default, null):Int;
+	public var xpos(default, null):Int;
+	public var ypos(default, null):Int;
+	public var trigger:Int;
+	public var los:Int;
+
+	public function new (xpos:Int, ypos:Int)
+	{
+		this.xpos=xpos;
+		this.ypos=ypos;
+		entityx=0;
+		entity=0;
+		trigger = 0;
+		los = -1;
+		template = 0;
+	}
+}

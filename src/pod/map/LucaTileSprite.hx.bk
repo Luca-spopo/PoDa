@@ -1,0 +1,85 @@
+package map;
+
+import flash.display.Bitmap;
+import flash.display.BitmapData;
+import haxe.Timer;
+
+private typedef Anims = Array<   {anim:Array<{frame:Int, time:Int}>,   next:Array<Int>}   >
+
+//TODO: This class needs a lot of validation rules in place.
+//Also, this class needs a lot of optimization. Every fucking frame of animation is creating a new Timer PER TILE. Imagine 32^2 Timers being created every 100 miliseconds. Better alternative would be to keep a single timer per tile along with counter. DAMN YOU GARBAGE COLLECTION.
+
+class LucaTileSprite extends Bitmap
+{
+	public var images:Array<BitmapData>;
+	public var anims(default, null):Anims;
+	private var tim:Timer;
+	private var counter:Int;
+	public function new (nimages:Array<BitmapData>, nanims:Anims)
+	{
+		super ();
+		if(nimages==null || nimages[0]==null || nanims==null) trace("Bad args at LucaTileSprite.new");
+		images = nimages;
+		anims = nanims;
+		tim = new Timer(100);
+		anim(0);
+		counter=-1;
+		tim.run = function(){  timhandler();  };
+	}
+	
+	private function timhandler()
+	{
+		if(counter==anims[n].anim[i].time)
+		{
+			counter=0;
+			anim(n, i+1, freeze);
+		}
+	}
+	
+	public function anim(n:Int, i:Int=0, freeze:Bool=false)
+	{
+
+		if(n>=0 && n<=anims.length-1 && i>=0 && i<=anims[n].anim.length-1)
+		{
+			bitmapData = images[anims[n].anim[i].frame];
+			if(i<anims[n].anim.length-1)
+			{
+				counter=0;
+				anim(n, i+1, freeze);
+				//tim = haxe.Timer.delay(function(){anim(n, i+1, freeze);}, anims[n].anim[i].time*100);
+			}
+			else
+				if(!freeze && anims[n].next!=null && anims[n].next.length>0 && counter==anims[n].anim[i].time)
+				{
+					counter=0;
+					anim(anims[n].next[Std.random(anims[n].next.length)], 0);
+					//tim = haxe.Timer.delay(function(){anim(anims[n].next[Std.random(anims[n].next.length)], 0);}, anims[n].anim[i].time*100);
+				}
+		}
+		else
+			trace("Bad arg @ LucaTileSprite.anim");
+		counter++;
+	}
+	
+	public function clone()
+	{
+		return new LucaTileSprite(images, anims);
+	}
+	
+	public function copy(l:LucaTileSprite)
+	{
+		anims = l.anims;
+		images = l.images;
+		if(tim!=null)
+			tim.stop();
+		anim(0);
+	}
+	
+	public function same(l:LucaTileSprite)
+	{
+		if(l.images == images && l.anims==anims)
+			return true;
+		return false;
+	}
+	
+}

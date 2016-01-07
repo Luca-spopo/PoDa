@@ -1,0 +1,102 @@
+	public function shiftLocalMap(direction:Int) //1=x-, 2=y-, 3=x+, 4=y+ (for the camera)
+	{
+		//TODO: You're loading the tiles from the map just fine, but implement a saving mechanism to save the tilesprites being unloaded back to the map.
+	
+		switch(direction)
+		{
+			case 3	:	camX++;
+			case 2	:	camY--;
+			case 1	:	camX--;
+			case 4	:	camY++;
+		}
+	
+		var camxx:Int = Std.int(camX);
+		var camyy:Int = Std.int(camY);
+		var m:Map = map;
+		
+		//	add the new row or coloumn
+		switch(direction)
+		{
+			//may be WIP
+			case 3	:	//x++ (i.e. ground will move in the X+ direction i.e. Cam in X- direction)
+				//		trace('importing xrow ${camxx}+${rrange}=${camxx+rrange} for x++ case 3');
+						if(m.tiles[camxx+rrange]!=null)
+						{	
+							for(i in 0...localmapSide)
+							{
+								localmap[xmarker][loopint(i+ymarker)] = toTileSprite(m.tiles[camxx+rrange][camyy-rrange+i]); 
+							}
+						}
+						else
+							for(i in 0...localmapSide)
+								localmap[xmarker][loopint(ymarker+i)] =  toTileSprite(null);
+
+		
+			case 4	:	//y++
+						for(i in 0...localmapSide)
+							if(m.tiles[camxx-rrange+i]!=null)
+								localmap[loopint(i+xmarker)][ymarker] = toTileSprite(m.tiles[camxx-rrange+i][camyy+rrange]);
+							else
+									localmap[loopint(xmarker+i)][ymarker] =  toTileSprite(null);
+			case 1	:	//x--
+				//		trace('importing xrow ${camxx}-${rrange}=${camxx-rrange} for x--');
+			//		trace("cp1");
+						if(m.tiles[camxx-rrange]!=null)
+						{
+					//		trace("cp2a");
+							for(i in 0...localmapSide)
+								localmap[loopint(xmarker+localmapSide-1)][loopint(ymarker+i)] = toTileSprite(m.tiles[camxx-rrange][camyy-rrange+i]);
+					//		trace("cp3a");
+						}
+						else
+						{
+						//	trace("cp2b");
+							for(i in 0...localmapSide)
+								localmap[loopint(xmarker+localmapSide-1)][loopint(ymarker+i)] =  toTileSprite(null);
+						//	trace("cp3b");
+						}
+			case 2	:	//y--;
+						for(i in 0...localmapSide)
+							if(m.tiles[camxx-rrange+i]!=null)
+								localmap[loopint(xmarker+i)][loopint(ymarker+localmapSide-1)] = toTileSprite(m.tiles[camxx-rrange+i][camyy-rrange]);			
+							else
+									localmap[loopint(xmarker+i)][loopint(ymarker+localmapSide-1)] =  toTileSprite(null);
+		}
+		
+		
+	//	trace("cp4");
+
+
+		switch(direction)
+		{
+			case 3	:	xmarker++;
+			case 2	:	ymarker--;
+			case 1	:	xmarker--;
+			case 4	:	ymarker++;
+		}
+		
+		xmarker = loopint(xmarker);
+		ymarker = loopint(ymarker);
+		
+		var ym16 = loopint(ymarker+rrange);
+		var xm16 = loopint(xmarker+rrange);	//the new 'center' block for the localmap (taking the markers into account)
+		
+		if(localmap[xm16][ym16].los!=-1)
+			los = localmap[xm16][ym16].los;
+		else
+			los = m.deflos;
+		
+		if(localmap[xm16][ym16].trigger!=null)
+			localmap[xm16][ym16].trigger.doo();
+	//	if(m.tilefun[localmap[xm16][ym16].trigger-1]!=null)		
+	//		m.tilefun[localmap[xm16][ym16].trigger-1].doo();
+		
+		
+		magx=xlen/(tileW*(los+0.5));
+		magy=ylen/(tileH*(los+0.5));
+		container.scaleX =  magx;
+		container.scaleY = magy;
+		//outsource to a zoom function later
+		
+		renderMap();
+	}

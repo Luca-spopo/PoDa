@@ -1,0 +1,139 @@
+//package;
+
+class Main extends Sprite
+{
+	public function new()
+	{
+		super();
+		trace(-3%10);
+	}
+}
+
+
+import flash.display.Sprite;
+import map.Container;
+import map.TileTemplate;
+import map.Tile;
+import openfl.Assets;
+import flash.display.Bitmap;
+import flash.display.BitmapData;
+import map.Mapper;
+import map.Entity;
+import map.Map;
+import map.Coord;
+import map.Trigger;
+import map.LucaTileSprite;
+import flash.events.Event;
+import flash.events.KeyboardEvent;
+import common.Ticker;
+import haxe.Timer;
+
+class Main extends Sprite
+{
+	private var con:Container;
+	private var temp:TileTemplate;
+	private var temp2:TileTemplate;
+	private var til:Tile;
+	
+	var bitmap:LucaTileSprite;
+	var bitmap2:LucaTileSprite;
+	var bitmap3:LucaTileSprite;
+	
+	public function new ()
+	{
+		
+		super ();
+		
+		bitmap = new LucaTileSprite([(Assets.getBitmapData ("assets/grass.png"))], [{anim:[{frame:0, time:-1}], next:null}]);
+		bitmap2 = new LucaTileSprite([(Assets.getBitmapData ("assets/32tree1.png"))], [{anim:[{frame:0, time:-1}], next:null}]);
+		bitmap3 = new LucaTileSprite([(Assets.getBitmapData ("assets/reef1.png")), (Assets.getBitmapData ("assets/reef2.png"))], [{anim:[{frame:0, time:10}], next:[0, 1]}, {anim:[{frame:1, time:10}], next:[0, 1]}]);
+		//bitmap3 = new LucaTileSprite([(Assets.getBitmapData ("assets/reef1.png"))], [{anim:[{frame:0, time:-1}], next:null}]);
+		var bitmap4 = new LucaTileSprite([(Assets.getBitmapData ("assets/arth.png"))], [{anim:[{frame:0, time:-1}], next:null}]);
+		bitmap2.scaleX = bitmap2.scaleY = 0.1;
+		bitmap4.scaleX = bitmap4.scaleY = 2;
+		
+		temp2 = new TileTemplate(bitmap, bitmap2, 1, 1, 1, 1, 0, 0, -5, -135);
+		temp = new TileTemplate(bitmap3, null, 0, 0, 0, 0);
+		var temp3 = new TileTemplate(bitmap, bitmap4, 1, 1, 1, 1, 0, 0);
+		
+
+		var tilarr = Map.tilemapper(	[[1, 1, 1, 1, 1, 1, 2], 
+						 [1, 0, 2, 1, 1, 1, 1],
+						 [1, 0, 2, 1, 1, 1, 1],
+						 [1, 0, 2, 1, 1, 1, 1],
+						 [1, 0, 0, 1, 1, 1, 1], 
+						 [1, 2, 1, 1, 1, 1, 2]], 
+						 
+						[[15, 15, 15, 15, 15, 15, 15],
+						 [15, 15, 15, 15, 15, 15, 15],
+						 [15, 15, 15, 15, 15, 15, 15],
+						 [15, 15, 15, 15, 15, 15, 15],
+						 [15, 15, 15, 15, 15, 15, 15],
+						 [15, 15, 15, 15, 15, 15, 15]],
+						 						 
+						 [{c:new Coord(1, 1), t:1}]
+					);
+		var mapper = new Mapper(400);
+		mapper.x=stage.stageWidth/2+250;
+		mapper.y=stage.stageHeight/2;
+		addChild(mapper);		
+		if(tilarr!=null)
+		{
+			var map = new Map(1, "Test", tilarr, [temp, temp2, temp3], null, [new Coord(3, 2)], [function(){trace("Entered the map!");}], null, [new Trigger(function() {trace("ouch");} )], null, null, 15);
+			mapper.loadMap(map, 0);
+			trace("map was loaded");
+		}
+		else
+		trace("map was not loaded");
+		
+		stage.addEventListener(KeyboardEvent.KEY_DOWN, function(e){
+										var bla = (e.keyCode - 36);
+										switch(bla)
+										{
+											case 1	:	mapper.moveCam(-0.1, 0);
+											case 2	:	mapper.moveCam(0, -0.1);
+											case 3	:	mapper.moveCam(0.1, 0);
+											case 4	:	mapper.moveCam(0, 0.1);
+										};
+									  });
+				
+		/*
+		var blab=[
+				{anim:[{frame:0, time:5}, {frame:1, time:5}, {frame:2, time:5}],   			next:[1, 2]},
+				{anim:[{frame:3, time:3}, {frame:4, time:3}, {frame:5, time:3}, {frame:6, time:30}],  	 next:[0, 2]},
+				{anim:[{frame:7, time:5}, {frame:8, time:5}, {frame:9, time:5}],  			 next:null}
+			 ];
+		
+		var testluca = new LucaTileSprite([Assets.getBitmapData ("assets/w1.png"), Assets.getBitmapData ("assets/w2.png"), Assets.getBitmapData ("assets/w3.png"), Assets.getBitmapData ("assets/r1.png"), Assets.getBitmapData ("assets/r2.png"), Assets.getBitmapData ("assets/r3.png"), Assets.getBitmapData ("assets/r4.png"), Assets.getBitmapData ("assets/g1.png"), Assets.getBitmapData ("assets/g2.png"), Assets.getBitmapData ("assets/g3.png")], blab );
+		addChild(testluca);
+		testluca.x = 200;
+		testluca.y=200;
+		*/
+		var b1 = bitmap2.clone();
+		var b2 = bitmap2.clone();
+		var b3 = bitmap2.clone();
+		var b4 = bitmap2.clone();
+		addChild(b1);
+		addChild(b2);
+		addChild(b3);
+		addChild(b4);
+		b1.height=5;
+		b1.width=mapper.xlen;
+		b2.height=mapper.ylen;
+		b2.width=5;
+		b4.height=5;
+		b4.width=mapper.xlen;
+		b3.height=mapper.ylen;
+		b3.width=5;
+		b4.x=b1.x=b3.x=mapper.x - mapper.xlen/2;
+		b3.y=b1.y=b2.y=mapper.y - mapper.ylen/2;
+		b2.x=mapper.x + mapper.xlen/2;
+		b4.y=mapper.y + mapper.ylen/2;
+		var arth = new Bitmap(Assets.getBitmapData ("assets/arth.png"));
+		arth.scaleX=arth.scaleY=2;
+		arth.x=mapper.x-arth.width/2;
+		arth.y=mapper.y-arth.height+5;
+		addChild(arth);
+	}
+		
+}

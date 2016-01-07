@@ -1,0 +1,51 @@
+/*
+ @Author: Luca
+ 12/2014
+ katoch.anirudh@gmail.com
+ Do not copy
+ */
+
+//A datatype for animation data. Used by GifData.hx Remove from entity.hx later
+
+//private typedef Bob{frame:Int, time:Int};
+
+//a "frame" is one bitmapData index from the collection of bitmapdata indices in GifData
+
+package pod.common ;
+
+class Frame
+{
+	public var frame:Int;
+	public var time:Int;
+	public var offsetX:Int;
+	public var offsetY:Int;
+	public function new(frame:Int, time:Int, offX:Int=0, offY:Int=0)
+	{
+		this.frame = frame;
+		this.time = time;
+		offsetX = offX;
+		offsetY = offY;
+	}
+}
+
+class Anim
+{
+
+	public var anim:Array<Frame>;	//Array of frames to play, along with their respective periods. POSSIBLY BACKWARDS, STAY TUNEDON GIF.HX
+	public var next:Array<Int>;	//Indices of possible next Anims after this one.
+	public function new (anim_:Array<Frame>, next_:Array<Int>)
+	{
+		anim = anim_;
+		next=next_;
+	}
+	
+	/*
+	public function setbase(base:Int)
+	{
+		for (i in anim)
+		{
+			i.frame += base;
+		}
+	}
+	*/
+}
